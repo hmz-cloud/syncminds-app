@@ -1,0 +1,472 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>SyncMindz Preview</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: two live phones side by side on a quiet desk surface; they stack on narrow screens. */
+:root {
+  --desk: #e9ece9; --desk-ink: #1f2a28; --desk-muted: #4d5a57; --desk-line: #c9d1ce; --desk-card: #f6f8f7;
+  /* the app itself (light-only, matches the real build) */
+  --paper: #f7f5f0; --card: #ffffff; --ink: #1c1917; --ink2: #44403c; --line: #d6d3d1; --field: #8a8580;
+  --brand: #0f766e; --brand-dark: #115e59; --brand-soft: #e6f2f0;
+  --alarm: #b91c1c; --alarm-soft: #fdecec; --warn: #92400e; --warn-soft: #fdf3e2; --ok: #166534; --ok-soft: #e8f5ec;
+  --font: "IBM Plex Sans Arabic", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --desk: #141a19; --desk-ink: #e6ecea; --desk-muted: #a3b1ad; --desk-line: #2c3734; --desk-card: #1b2321; color-scheme: dark } }
+:root[data-theme="dark"] { --desk: #141a19; --desk-ink: #e6ecea; --desk-muted: #a3b1ad; --desk-line: #2c3734; --desk-card: #1b2321; color-scheme: dark }
+
+* { box-sizing: border-box }
+body { background: var(--desk); color: var(--desk-ink); font-family: var(--font); line-height: 1.5;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 28px 48px }
+button { font: inherit; cursor: pointer }
+:focus-visible { outline: 3px solid var(--brand); outline-offset: 2px }
+
+.intro { max-width: 980px; margin: 0 auto 22px; display: flex; flex-wrap: wrap; gap: 12px 24px; align-items: end; justify-content: space-between }
+.intro h1 { margin: 0; font-size: 1.7rem; letter-spacing: -.01em; text-wrap: balance }
+.intro p { margin: 4px 0 0; color: var(--desk-muted); max-width: 60ch }
+.chip { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--desk-line); background: var(--desk-card); color: var(--desk-ink);
+  border-radius: 999px; padding: 6px 14px; font-size: .9rem; font-weight: 600 }
+.chip[aria-pressed="false"] { color: var(--desk-muted) }
+
+.desk { max-width: 980px; margin: 0 auto; display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 28px; justify-items: center }
+.rig { width: 100%; max-width: 390px; display: flex; flex-direction: column; gap: 10px; min-width: 0 }
+.rig-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap }
+.rig-head b { font-size: 1rem }
+.rig-head span { color: var(--desk-muted); font-size: .85rem }
+.ringnow { border: 1px solid var(--desk-line); background: var(--desk-card); color: var(--desk-ink); border-radius: 10px; padding: 6px 12px; font-size: .85rem; font-weight: 600 }
+
+.phone { position: relative; height: 760px; max-height: 86vh; border-radius: 42px; padding: 12px; background: #101413; box-shadow: 0 20px 40px -18px rgba(0,0,0,.45) }
+.screen { position: relative; height: 100%; border-radius: 32px; overflow: hidden; background: var(--paper); color: var(--ink);
+  font-family: var(--font); font-size: 16px; line-height: 1.5; display: flex; flex-direction: column }
+.screen[data-text="normal"] { font-size: 14.5px } .screen[data-text="xlarge"] { font-size: 18.5px }
+.status { display: flex; justify-content: space-between; padding: 10px 22px 4px; font-size: 12px; font-weight: 600; direction: ltr }
+.scroll { flex: 1; overflow-y: auto; padding: 6px 16px 150px }
+.scroll::-webkit-scrollbar { width: 0 }
+h2 { font-size: 1.45em; margin: .3em 0 .7em; line-height: 1.25 }
+h3 { font-size: 1.05em; margin: 1.2em 0 .5em }
+.stack { display: flex; flex-direction: column; gap: 10px }
+
+.card { background: var(--card); border: 2px solid var(--line); border-radius: 22px; padding: 14px }
+.card.big { border-color: var(--brand); padding: 18px }
+.card.warn { background: var(--warn-soft); border-color: #e6c79b }
+.empty { border-style: dashed; color: var(--ink2) }
+.badge { display: inline-flex; align-items: center; gap: 5px; border-radius: 999px; padding: 1px 10px; font-size: .82em; font-weight: 600 }
+.badge.alarm { background: var(--alarm-soft); color: var(--alarm) } .badge.rem { background: var(--brand-soft); color: var(--brand-dark) }
+.badge svg { width: 1em; height: 1em }
+.title { font-weight: 700; font-size: 1.15em; margin: 8px 0 2px; line-height: 1.3 }
+.big .title { font-size: 1.45em }
+.when { font-weight: 600; display: flex; align-items: center; gap: 6px; margin-top: 6px }
+.when svg { width: 1.1em; height: 1.1em; color: var(--brand) }
+.muted { color: var(--ink2) }
+.row { display: flex; gap: 10px; align-items: center }
+.st { font-weight: 600; display: flex; gap: 6px; align-items: center; margin-top: 6px }
+.st svg { width: 1.1em; height: 1.1em; flex: none }
+.st.ok { color: var(--ok) } .st.bad { color: var(--alarm) } .st.wait { color: var(--warn) } .st.neutral { color: var(--ink2) }
+.av { width: 2.4em; height: 2.4em; border-radius: 50%; display: grid; place-items: center; color: #fff; font-weight: 700; flex: none }
+.av.sm { width: 2em; height: 2em; font-size: .9em }
+
+.btn { min-height: 3.1em; border-radius: 16px; border: 0; padding: 0 1em; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; gap: 8px; font-size: 1em }
+.btn svg { width: 1.2em; height: 1.2em }
+.btn.primary { background: var(--brand); color: #fff } .btn.okb { background: var(--ok); color: #fff }
+.btn.sec { background: var(--card); color: var(--ink); border: 2px solid var(--field) }
+.btn.ghost { background: transparent; color: var(--brand-dark) }
+.btn.danger { background: var(--card); color: var(--alarm); border: 2px solid #e8b4b4 }
+.btn.block { width: 100% }
+.btn:disabled { opacity: .45; cursor: not-allowed }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px }
+.grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px }
+
+.newbtn { position: absolute; inset-inline: 16px; bottom: 78px; z-index: 5 }
+.newbtn .btn { width: 100%; box-shadow: 0 8px 18px -8px rgba(15,118,110,.6); font-size: 1.08em }
+.nav { position: absolute; inset-inline: 0; bottom: 0; background: var(--card); border-top: 2px solid var(--line); display: grid; grid-template-columns: repeat(3,1fr); padding-bottom: 8px; z-index: 5 }
+.nav button { background: none; border: 0; min-height: 62px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; color: var(--ink2); font-weight: 600; font-size: .82em; position: relative }
+.nav button svg { width: 1.6em; height: 1.6em }
+.nav button[aria-current="page"] { color: var(--brand-dark) }
+.nav button[aria-current="page"]::before { content: ""; position: absolute; top: 0; width: 44px; height: 4px; border-radius: 0 0 4px 4px; background: var(--brand) }
+.dot { position: absolute; top: 6px; margin-inline-start: 34px; min-width: 20px; height: 20px; border-radius: 10px; background: var(--alarm); color: #fff; font-size: 12px; display: grid; place-items: center; padding: 0 5px }
+
+.choice { width: 100%; min-height: 3.1em; border-radius: 16px; border: 2px solid var(--field); background: var(--card); color: var(--ink); padding: 10px 12px; text-align: start; font-weight: 600 }
+.choice[aria-pressed="true"] { border-color: var(--brand); background: var(--brand-soft); color: var(--brand-dark) }
+.choice small { display: block; font-weight: 400; color: var(--ink2); font-size: .85em }
+.idea { min-height: 2.6em; border-radius: 999px; border: 2px solid var(--field); background: var(--card); color: var(--ink); padding: 0 12px; font-weight: 500 }
+input.field { width: 100%; min-height: 3.1em; border-radius: 16px; border: 2px solid var(--field); background: var(--card); color: var(--ink); padding: 0 14px; font: inherit; font-size: 1.05em }
+input.field:focus { border-color: var(--brand); outline: none }
+label.lbl { display: block; font-weight: 700; font-size: 1.15em; margin-bottom: 8px }
+
+.sheetwrap { position: absolute; inset: 0; z-index: 20; background: rgba(28,25,23,.5); display: flex; align-items: flex-end }
+.sheet { width: 100%; max-height: 92%; background: var(--paper); border-radius: 26px 26px 0 0; display: flex; flex-direction: column }
+.sheet-h { display: flex; justify-content: space-between; align-items: center; padding: 16px 16px 6px }
+.sheet-h b { font-size: 1.25em }
+.x { width: 2.8em; height: 2.8em; border-radius: 50%; border: 0; background: transparent; display: grid; place-items: center; color: var(--ink) }
+.x svg { width: 1.4em; height: 1.4em }
+.sheet-b { overflow-y: auto; padding: 4px 16px 12px; flex: 1 }
+.sheet-f { padding: 10px 16px 16px; border-top: 2px solid var(--line); display: flex; gap: 10px }
+.bar { display: flex; gap: 6px; margin: 8px 0 16px } .bar i { height: 6px; flex: 1; border-radius: 3px; background: var(--line) } .bar i.on { background: var(--brand) }
+.summary { background: var(--card); border: 2px solid var(--line); border-radius: 16px; padding: 12px; margin-top: 14px }
+
+.ring { position: absolute; inset: 0; z-index: 30; background: var(--paper); display: flex; flex-direction: column; padding: 30px 18px 18px; text-align: center }
+.ring-mid { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; overflow-y: auto }
+.pulse { position: relative; width: 104px; height: 104px; display: grid; place-items: center }
+.pulse::before { content: ""; position: absolute; inset: 0; border-radius: 50%; background: currentColor; opacity: .25; animation: p 1.6s ease-out infinite }
+.pulse span { position: relative; width: 88px; height: 88px; border-radius: 50%; background: currentColor; display: grid; place-items: center }
+.pulse svg { width: 44px; height: 44px; color: #fff }
+@keyframes p { from { transform: scale(.9); opacity: .5 } to { transform: scale(1.5); opacity: 0 } }
+.ring h4 { font-size: 1.9em; line-height: 1.2; margin: 0; text-wrap: balance }
+.donebig { width: 100%; min-height: 4.4em; border-radius: 22px; border: 0; background: var(--ok); color: #fff; font-size: 1.5em; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 10px }
+.donebig svg { width: 1.3em; height: 1.3em }
+.reply[aria-pressed="true"] { border-color: var(--brand); background: var(--brand-soft); color: var(--brand-dark) }
+
+.toast { position: absolute; inset-inline: 14px; bottom: 140px; z-index: 40; background: var(--ink); color: #fff; border-radius: 16px; padding: 12px 14px; font-weight: 600; display: flex; gap: 10px; align-items: center }
+.toast button { background: none; border: 0; color: #fff; text-decoration: underline; font-weight: 700 }
+.code { font-size: 2.1em; font-weight: 700; letter-spacing: .22em; text-align: center; color: var(--brand-dark); direction: ltr }
+.radio { display: flex; gap: 10px; align-items: center; min-height: 2.9em; padding: 0 6px; border-radius: 12px }
+.radio input { width: 1.4em; height: 1.4em; accent-color: var(--brand) }
+.seg { display: flex; gap: 8px } .seg .choice { text-align: center }
+.foot { max-width: 980px; margin: 26px auto 0; color: var(--desk-muted); font-size: .9rem }
+@media (prefers-reduced-motion: reduce) { .pulse::before { animation: none } }
+</style>
+</head>
+<body>
+
+<header class="intro">
+  <div>
+    <h1>SyncMindz preview</h1>
+    <p>Two phones sharing one family's reminders. Hassan's phone is in English, Amira's is in Arabic with Simple mode and extra-large text. Anything you send on one appears on the other.</p>
+  </div>
+  <button class="chip" id="soundBtn" aria-pressed="true">Sound on</button>
+</header>
+
+<main class="desk">
+  <section class="rig" aria-label="Hassan's phone">
+    <div class="rig-head"><div><b>Hassan</b> <span>· sends reminders</span></div><button class="ringnow" data-ringnow="h">Ring his next one now</button></div>
+    <div class="phone"><div class="screen" id="phone-h"></div></div>
+  </section>
+  <section class="rig" aria-label="Amira's phone">
+    <div class="rig-head"><div><b>Amira (Mom)</b> <span>· receives them</span></div><button class="ringnow" data-ringnow="a">Ring her next one now</button></div>
+    <div class="phone"><div class="screen" id="phone-a"></div></div>
+  </section>
+</main>
+<p class="foot">Sample data only; nothing is saved or sent. "Ring … now" skips the wait so you can see the alarm screen. In the real app the alarm also rings when the phone is locked.</p>
+
+<script>
+const ICON = {
+  home:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>',
+  people:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.6 3.4-5.5 6.5-5.5s5.7 1.9 6.5 5.5"/><circle cx="17.5" cy="9" r="2.5"/><path d="M16 14.6c2.7.1 4.6 1.8 5.4 4.6"/></svg>',
+  gear:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>',
+  plus:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>',
+  bell:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.9 1.9 0 0 0 3.4 0"/></svg>',
+  alarm:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2 2M5 3 2 6M22 6l-3-3"/></svg>',
+  check:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>',
+  clock:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
+  alert:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg>',
+  x:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>',
+  speak:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H2v6h4l5 4zM15.5 8.5a5 5 0 0 1 0 7M19 5a10 10 0 0 1 0 14"/></svg>',
+  send:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4z"/><path d="M22 2 11 13"/></svg>',
+};
+
+const S = {
+ en:{greet:"Hello, {n}",needsOk:"Waiting for your OK",forYou:"Coming up for you",sent:"You sent",nothing:"Nothing coming up. Enjoy your day.",nothingSent:"You haven't sent anything yet.",
+  alarm:"Alarm",reminder:"Reminder",from:"From {n}",to:"For {n}",own:"Your own",daily:"Every day",weekly:"Every week",done:"Done",
+  "st.pending":"Waiting for {n} to accept","st.scheduled":"Set on {n}'s phone","st.snoozed":"Will ring again soon","st.done":"{n} pressed Done","st.doneAt":"{n} pressed Done at {t}","st.declined":"{n} said no","st.missed":"Not confirmed — maybe call {n}","st.cancelled":"Cancelled",
+  replied:"Reply: “{r}”",ask:"{n} wants to add this to your phone",allow:"Allow",decline:"No thanks",always:"Always allow {n}",
+  home:"Today",people:"My people",settings:"Settings","new":"New reminder",
+  sTitle:"New reminder",step:"Step {s} of 3",who:"Who is it for?",me:"Me",what:"What should it say?",ph:"e.g. Take your medicine",ideas:"Quick ideas",
+  sound:"How should it sound?",kAlarm:"Alarm",kAlarmH:"Loud. Rings until they press Done.",kRem:"Reminder",kRemH:"One gentle sound.",
+  when:"When?",in1:"In 1 minute",in15:"In 15 minutes",tonight:"Tonight, 8:00",tomorrow:"Tomorrow, 8:00",repeat:"Repeat",once:"Once",
+  sum:"{k} for {n}, {w}",sumMe:"{k} for you, {w}",willAsk:"{n} will be asked to accept it first.",willRing:"It will be set on {n}'s phone right away.",
+  next:"Next",back:"Back",send:"Send",save:"Save",sentTo:"Sent to {n}",saved:"Saved",undo:"Undo",cancelled:"Cancelled",cancel:"Cancel it",
+  ringFrom:"{n} reminded you",ringOwn:"Your reminder",snooze:"Remind me in 10 minutes",replyQ:"Send a quick reply (optional)",r1:"Done ❤️",r2:"On my way",r3:"Call me",read:"Read it to me",
+  code:"Your code",codeH:"Give this code to someone so they can add you.",connected:"Connected",remind:"Send a reminder",
+  trust:"What can {n} do on your phone?",tAuto:"Add reminders without asking me",tAsk:"Ask me first each time",tBlock:"Nothing — block",allowAlarms:"Allow loud alarms (not just gentle reminders)",
+  lang:"Language",size:"Text size",normal:"Normal",large:"Large",xlarge:"Extra large",simple:"Simple mode",simpleH:"Bigger buttons, fewer choices.",test:"Test the alarm sound",testH:"Rings in 5 seconds.",testArmed:"The test alarm will ring in 5 seconds.",
+  today:"Today",tmrw:"Tomorrow",
+  i1:"Take your medicine",i2:"Drink a glass of water",i3:"Call me back",i4:"Doctor appointment",i5:"Pick up the kids",i6:"Get ready for prayer"},
+ ar:{greet:"مرحبًا، {n}",needsOk:"بانتظار موافقتك",forYou:"القادم لك",sent:"ما أرسلته",nothing:"لا شيء قادم. يومك سعيد.",nothingSent:"لم ترسل أي تذكير بعد.",
+  alarm:"منبّه",reminder:"تذكير",from:"من {n}",to:"إلى {n}",own:"تذكيرك الخاص",daily:"كل يوم",weekly:"كل أسبوع",done:"تم",
+  "st.pending":"بانتظار موافقة {n}","st.scheduled":"مضبوط على جوال {n}","st.snoozed":"سيرنّ مرة أخرى قريبًا","st.done":"تم التأكيد من {n}","st.doneAt":"تم التأكيد من {n} الساعة {t}","st.declined":"لم تتم الموافقة من {n}","st.missed":"لم يصل تأكيد — اتصل بـ{n} للاطمئنان","st.cancelled":"أُلغي",
+  replied:"الرد: «{r}»",ask:"طلب من {n} لإضافة هذا إلى جوالك",allow:"موافق",decline:"لا، شكرًا",always:"وافق دائمًا على طلبات {n}",
+  home:"اليوم",people:"أهلي",settings:"الإعدادات","new":"تذكير جديد",
+  sTitle:"تذكير جديد",step:"الخطوة {s} من ٣",who:"لمن التذكير؟",me:"لي أنا",what:"ماذا يقول التذكير؟",ph:"مثلًا: موعد الدواء",ideas:"أفكار سريعة",
+  sound:"كيف يكون الصوت؟",kAlarm:"منبّه",kAlarmH:"صوت عالٍ يستمر حتى الضغط على «تم».",kRem:"تذكير",kRemH:"صوت هادئ مرة واحدة.",
+  when:"متى؟",in1:"بعد دقيقة",in15:"بعد ١٥ دقيقة",tonight:"الليلة، ٨:٠٠ م",tomorrow:"غدًا، ٨:٠٠ ص",repeat:"التكرار",once:"مرة واحدة",
+  sum:"{k} لـ{n}، {w}",sumMe:"{k} لك، {w}",willAsk:"سيُطلب من {n} الموافقة أولًا.",willRing:"سيُضبط على جوال {n} مباشرة.",
+  next:"التالي",back:"رجوع",send:"إرسال",save:"حفظ",sentTo:"أُرسل إلى {n}",saved:"تم الحفظ",undo:"تراجع",cancelled:"أُلغي",cancel:"إلغاء",
+  ringFrom:"تذكير من {n}",ringOwn:"تذكيرك",snooze:"ذكّرني بعد ١٠ دقائق",replyQ:"أرسل ردًا سريعًا (اختياري)",r1:"تم ❤️",r2:"في الطريق",r3:"اتصل بي",read:"اقرأه لي",
+  code:"رمزك",codeH:"أعطِ هذا الرمز لمن تريد أن يضيفك.",connected:"المرتبطون بك",remind:"أرسل تذكيرًا",
+  trust:"ما المسموح لـ{n} على جوالك؟",tAuto:"إضافة التذكيرات دون سؤالي",tAsk:"سؤالي أولًا في كل مرة",tBlock:"لا يرسل لي شيئًا (حظر)",allowAlarms:"السماح بالمنبّه العالي (وليس التذكير الهادئ فقط)",
+  lang:"اللغة",size:"حجم الخط",normal:"عادي",large:"كبير",xlarge:"كبير جدًا",simple:"الوضع المبسّط",simpleH:"أزرار أكبر وخيارات أقل.",test:"جرّب صوت المنبّه",testH:"يرنّ بعد ٥ ثوانٍ.",testArmed:"سيرنّ المنبّه التجريبي بعد ٥ ثوانٍ.",
+  today:"اليوم",tmrw:"غدًا",
+  i1:"موعد الدواء",i2:"وقت شرب الماء",i3:"اتصال بي",i4:"موعد الطبيب",i5:"استلام الأولاد من المدرسة",i6:"الاستعداد للصلاة"},
+};
+
+const MIN = 60000, now = () => Date.now();
+const users = {
+  h:{id:'h',name:{en:'Hassan',ar:'حسن'},lang:'en',text:'large',simple:false,code:'749210',color:'#1d4ed8'},
+  a:{id:'a',name:{en:'Amira',ar:'أميرة'},lang:'ar',text:'xlarge',simple:true,code:'512984',color:'#0f766e'},
+};
+// rules[owner][sender]: what the sender may do on the owner's phone
+const rules = { a:{ h:{level:'auto',alarms:true} }, h:{ a:{level:'ask',alarms:true} } };
+const at = (d,h,m) => { const x=new Date(); x.setDate(x.getDate()+d); x.setHours(h,m,0,0); return +x; };
+let seq = 10;
+let items = [
+  {id:'1',from:'h',to:'a',kind:'alarm',title:{en:'Blood pressure medicine',ar:'دواء الضغط'},note:{en:'With a full glass of water',ar:'مع كوب ماء كامل'},due:now()+20*MIN,repeat:'daily',status:'scheduled',reply:null,doneAt:null,created:now()-3*864e5},
+  {id:'2',from:'h',to:'a',kind:'reminder',title:{en:'Doctor appointment at 10:00',ar:'موعد الطبيب الساعة ١٠:٠٠'},note:null,due:at(1,9,0),repeat:'none',status:'scheduled',reply:null,doneAt:null,created:now()-864e5},
+  {id:'3',from:'h',to:'a',kind:'reminder',title:{en:'Drink a glass of water',ar:'وقت شرب الماء'},note:null,due:now()-3*60*MIN,repeat:'none',status:'done',reply:{en:'Done ❤️',ar:'تم ❤️'},doneAt:now()-3*60*MIN+2*MIN,created:now()-5*60*MIN},
+  {id:'4',from:'a',to:'h',kind:'reminder',title:{en:'Family dinner at 7:30',ar:'عشاء العائلة الساعة ٧:٣٠'},note:{en:'Bring the kids',ar:'أحضر الأولاد'},due:at(0,19,0) > now() ? at(0,19,0) : at(1,19,0),repeat:'none',status:'pending',reply:null,doneAt:null,created:now()-30*MIN},
+];
+const ui = { h:{tab:'home',sheet:null,ring:null,ringReply:null,toast:null}, a:{tab:'home',sheet:null,ring:null,ringReply:null,toast:null} };
+const handled = new Set();
+let soundOn = true;
+
+const other = u => u==='h'?'a':'h';
+const L = u => users[u].lang;
+const tx = (u,k,v={}) => { let s = S[L(u)][k] ?? S.en[k] ?? k; for (const [a,b] of Object.entries(v)) s = s.split('{'+a+'}').join(b); return s; };
+const nm = (viewer,id) => users[id].name[L(viewer)];
+const txt = (viewer,v) => v == null ? '' : (typeof v === 'string' ? v : v[L(viewer)]);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const loc = u => L(u)==='ar' ? 'ar-SA-u-ca-gregory' : 'en-GB';
+const time = (u,ms) => new Date(ms).toLocaleTimeString(loc(u),{hour:'numeric',minute:'2-digit',hour12:true});
+const sameDay = (a,b) => { a=new Date(a); b=new Date(b); return a.toDateString()===b.toDateString(); };
+function when(u,ms){ const t=time(u,ms); if (sameDay(ms,now())) return tx(u,'today')+' '+t; if (sameDay(ms,now()+864e5)) return tx(u,'tmrw')+' '+t;
+  return new Date(ms).toLocaleDateString(loc(u),{weekday:'long',day:'numeric',month:'long'})+(L(u)==='ar'?'، ':', ')+t; }
+const ringAt = i => i.due;
+const live = i => i.status==='scheduled' || i.status==='snoozed';
+const willAuto = (sender,to,kind) => sender===to || (rules[to]?.[sender]?.level==='auto' && (kind==='reminder' || rules[to][sender].alarms));
+
+function avatar(u,id,sm){ return `<span class="av${sm?' sm':''}" aria-hidden="true" style="background:${users[id].color}">${esc(nm(u,id)[0])}</span>`; }
+function kindBadge(u,k){ return k==='alarm' ? `<span class="badge alarm">${ICON.alarm}${tx(u,'alarm')}</span>` : `<span class="badge rem">${ICON.bell}${tx(u,'reminder')}</span>`; }
+
+function homeView(u){
+  const me = users[u];
+  const approvals = items.filter(i=>i.to===u && i.from!==u && i.status==='pending');
+  let up = items.filter(i=>i.to===u && live(i)).sort((a,b)=>ringAt(a)-ringAt(b));
+  if (me.simple) up = up.filter((i,n)=> n===0 || sameDay(ringAt(i),now()));
+  const sent = items.filter(i=>i.from===u && i.to!==u && i.status!=='cancelled').sort((a,b)=>b.created-a.created);
+  let h = `<h2>${tx(u,'greet',{n:esc(nm(u,u))})}</h2>`;
+  if (approvals.length) {
+    h += `<h3>${tx(u,'needsOk')}</h3><div class="stack">` + approvals.map(i=>`
+      <div class="card warn"><div class="row">${avatar(u,i.from)}<b>${tx(u,'ask',{n:esc(nm(u,i.from))})}</b></div>
+        <div class="card" style="margin-top:10px">${kindBadge(u,i.kind)}<div class="title">${esc(txt(u,i.title))}</div>
+        ${i.note?`<div class="muted">${esc(txt(u,i.note))}</div>`:''}<div class="when">${ICON.clock}${when(u,i.due)}</div></div>
+        <div class="grid2" style="margin-top:10px"><button class="btn sec" data-a="decline" data-id="${i.id}">${tx(u,'decline')}</button>
+        <button class="btn primary" data-a="allow" data-id="${i.id}">${ICON.check}${tx(u,'allow')}</button></div>
+        <button class="btn ghost block" data-a="always" data-id="${i.id}">${tx(u,'always',{n:esc(nm(u,i.from))})}</button></div>`).join('') + `</div>`;
+  }
+  h += `<h3>${tx(u,'forYou')}</h3><div class="stack">`;
+  if (!up.length) h += `<div class="card empty">${tx(u,'nothing')}</div>`;
+  up.forEach((i,n)=>{
+    const own = i.from===u;
+    h += `<article class="card${n===0?' big':''}"><div class="row" style="flex-wrap:wrap">${kindBadge(u,i.kind)}${i.repeat!=='none'?`<span class="muted">· ${tx(u,i.repeat)}</span>`:''}</div>
+      <div class="title">${esc(txt(u,i.title))}</div>${i.note?`<div class="muted">${esc(txt(u,i.note))}</div>`:''}
+      <div class="when">${ICON.clock}${when(u,ringAt(i))}</div>
+      <div class="muted">${own?tx(u,'own'):tx(u,'from',{n:esc(nm(u,i.from))})}</div>
+      ${n===0?`<button class="btn okb block" style="margin-top:12px" data-a="doneCard" data-id="${i.id}">${ICON.check}${tx(u,'done')}</button>`:''}</article>`;
+  });
+  h += `</div>`;
+  if (!me.simple || sent.length) {
+    h += `<h3>${tx(u,'sent')}</h3><div class="stack">`;
+    if (!sent.length) h += `<p class="muted">${tx(u,'nothingSent')}</p>`;
+    sent.slice(0, me.simple?4:20).forEach(i=>{
+      const doneToday = i.repeat!=='none' && i.doneAt && sameDay(i.doneAt,now());
+      const s = i.status;
+      const cls = s==='done'||doneToday?'ok':(s==='missed'||s==='declined'?'bad':(s==='pending'?'wait':'neutral'));
+      const ic = cls==='ok'?ICON.check:(cls==='bad'?ICON.alert:ICON.clock);
+      const st = doneToday ? tx(u,'st.doneAt',{n:esc(nm(u,i.to)),t:time(u,i.doneAt)}) : tx(u,'st.'+s,{n:esc(nm(u,i.to))});
+      h += `<article class="card"><div class="row" style="align-items:flex-start">${avatar(u,i.to,1)}<div style="flex:1;min-width:0">
+        <div class="muted">${tx(u,'to',{n:esc(nm(u,i.to))})}</div><div class="title" style="margin-top:0">${esc(txt(u,i.title))}</div>
+        <div>${when(u,ringAt(i))}</div><div class="st ${cls}">${ic}<span>${st}</span></div>
+        ${i.reply?`<div class="muted">${tx(u,'replied',{r:esc(txt(u,i.reply))})}</div>`:''}</div>
+        ${live(i)||s==='pending'?`<button class="x" aria-label="${tx(u,'cancel')}" data-a="cancel" data-id="${i.id}">${ICON.x}</button>`:''}</div></article>`;
+    });
+    h += `</div>`;
+  }
+  return h;
+}
+
+function peopleView(u){
+  const o = other(u), r = rules[u][o];
+  return `<h2>${tx(u,'people')}</h2>
+  <h3>${tx(u,'connected')}</h3>
+  <div class="card"><div class="row">${avatar(u,o)}<b style="flex:1;font-size:1.1em">${esc(nm(u,o))}</b>
+    <button class="btn primary" data-a="remind">${ICON.send}<span>${tx(u,'remind')}</span></button></div>
+    <div style="border-top:2px solid var(--line);margin-top:12px;padding-top:10px">
+      <b>${tx(u,'trust',{n:esc(nm(u,o))})}</b>
+      ${['auto','ask','blocked'].map(l=>`<label class="radio"><input type="radio" name="lvl-${u}" ${r.level===l?'checked':''} data-a="level" data-v="${l}"><span>${tx(u,l==='auto'?'tAuto':l==='ask'?'tAsk':'tBlock')}</span></label>`).join('')}
+      ${r.level!=='blocked'?`<label class="radio"><input type="checkbox" ${r.alarms?'checked':''} data-a="alarms"><span>${tx(u,'allowAlarms')}</span></label>`:''}
+    </div></div>
+  <h3>${tx(u,'code')}</h3>
+  <div class="card" style="background:var(--brand-soft);border-color:transparent"><p class="muted" style="margin:0 0 6px">${tx(u,'codeH')}</p><div class="code">${users[u].code}</div></div>`;
+}
+
+function settingsView(u){
+  const me = users[u];
+  return `<h2>${tx(u,'settings')}</h2>
+  <h3>${tx(u,'lang')}</h3><div class="seg">${['ar','en'].map(l=>`<button class="choice" lang="${l}" aria-pressed="${me.lang===l}" data-a="lang" data-v="${l}">${l==='ar'?'العربية':'English'}</button>`).join('')}</div>
+  <h3>${tx(u,'size')}</h3><div class="seg">${['normal','large','xlarge'].map((s,n)=>`<button class="choice" aria-pressed="${me.text===s}" data-a="text" data-v="${s}"><span style="font-size:${.9+n*.15}em">${tx(u,s)}</span></button>`).join('')}</div>
+  <h3>${tx(u,'simple')}</h3><label class="card radio" style="padding:12px"><input type="checkbox" role="switch" ${me.simple?'checked':''} data-a="simple"><span><b>${tx(u,'simple')}</b><br><span class="muted">${tx(u,'simpleH')}</span></span></label>
+  <h3>${tx(u,'test')}</h3><div class="card"><p class="muted" style="margin-top:0">${tx(u,'testH')}</p><button class="btn primary block" data-a="test">${ICON.alarm}${tx(u,'test')}</button></div>`;
+}
+
+const IDEAS = ['i1','i2','i3','i4','i5','i6'];
+const presetTime = p => { const d=new Date(); if(p==='in1') return now()+MIN; if(p==='in15') return now()+15*MIN;
+  if(p==='tonight'){ d.setHours(20,0,0,0); if(+d<now()) d.setDate(d.getDate()+1); return +d; }
+  d.setDate(d.getDate()+1); d.setHours(8,0,0,0); return +d; };
+
+function sheetView(u){
+  const s = ui[u].sheet, o = other(u), isMe = s.to===u;
+  const who = isMe ? tx(u,'me') : nm(u,o);
+  const r = rules[o][u], alarmsOk = isMe || r.alarms;
+  const bar = [1,2,3].map(n=>`<i class="${n<=s.step?'on':''}"></i>`).join('');
+  let body = `<div class="muted" style="font-weight:600">${tx(u,'step',{s:L(u)==='ar'?'١٢٣'[s.step-1]:s.step})}</div><div class="bar" aria-hidden="true">${bar}</div>`;
+  if (s.step===1) body += `<label class="lbl">${tx(u,'who')}</label><div class="stack">
+    <button class="choice row" aria-pressed="${s.to===o}" data-a="to" data-v="${o}">${avatar(u,o)}<span style="font-size:1.1em">${esc(nm(u,o))}</span></button>
+    <button class="choice row" aria-pressed="${isMe}" data-a="to" data-v="${u}">${avatar(u,u)}<span style="font-size:1.1em">${tx(u,'me')}</span></button></div>`;
+  if (s.step===2) body += `<label class="lbl" for="t-${u}">${tx(u,'what')}</label>
+    <input class="field" id="t-${u}" maxlength="120" placeholder="${tx(u,'ph')}" value="${esc(s.title)}" data-in="title">
+    <p class="muted" style="font-weight:600;margin:12px 0 6px">${tx(u,'ideas')}</p>
+    <div class="row" style="flex-wrap:wrap;gap:8px">${IDEAS.slice(0, users[u].simple?4:6).map(k=>`<button class="idea" data-a="idea" data-v="${k}">${tx(u,k)}</button>`).join('')}</div>
+    <p class="lbl" style="margin-top:16px;font-size:1.05em">${tx(u,'sound')}</p>
+    <div class="grid2"><button class="choice" aria-pressed="${s.kind==='reminder'}" data-a="kind" data-v="reminder">${tx(u,'kRem')}<small>${tx(u,'kRemH')}</small></button>
+    <button class="choice" aria-pressed="${s.kind==='alarm'}" data-a="kind" data-v="alarm" ${alarmsOk?'':'disabled'}>${tx(u,'kAlarm')}<small>${tx(u,'kAlarmH')}</small></button></div>`;
+  if (s.step===3) {
+    const due = presetTime(s.preset), kind = alarmsOk ? s.kind : 'reminder', auto = willAuto(u,s.to,kind);
+    body += `<p class="lbl">${tx(u,'when')}</p><div class="grid2">${['in1','in15','tonight','tomorrow'].map(p=>`<button class="choice" aria-pressed="${s.preset===p}" data-a="preset" data-v="${p}">${tx(u,p)}</button>`).join('')}</div>
+    <p class="lbl" style="margin-top:14px;font-size:1.05em">${tx(u,'repeat')}</p>
+    <div class="grid3">${['none','daily','weekly'].map(r=>`<button class="choice" style="text-align:center" aria-pressed="${s.repeat===r}" data-a="repeat" data-v="${r}">${tx(u,r==='none'?'once':r)}</button>`).join('')}</div>
+    <div class="summary"><b>${esc(s.title)}</b><div>${tx(u,isMe?'sumMe':'sum',{k:tx(u,kind==='alarm'?'alarm':'reminder'),n:esc(who),w:when(u,due)})}</div>
+    ${isMe?'':`<div class="st ${auto?'ok':'wait'}">${auto?ICON.check:ICON.clock}<span>${tx(u,auto?'willRing':'willAsk',{n:esc(who)})}</span></div>`}</div>`;
+  }
+  const back = s.step>1 ? `<button class="btn sec" data-a="back">${tx(u,'back')}</button>` : '';
+  const fwd = s.step<3 ? `<button class="btn primary" style="flex:1" data-a="next" ${(s.step===1&&!s.to)||(s.step===2&&!s.title.trim())?'disabled':''}>${tx(u,'next')}</button>`
+                       : `<button class="btn okb" style="flex:1" data-a="submit">${ICON.check}${tx(u,isMe?'save':'send')}</button>`;
+  return `<div class="sheetwrap" data-a="sheetBg"><div class="sheet" role="dialog" aria-modal="true" aria-label="${tx(u,'sTitle')}">
+    <div class="sheet-h"><b>${tx(u,'sTitle')}</b><button class="x" aria-label="Close" data-a="close">${ICON.x}</button></div>
+    <div class="sheet-b">${body}</div><div class="sheet-f">${back}${fwd}</div></div></div>`;
+}
+
+function ringView(u){
+  const i = items.find(x=>x.id===ui[u].ring); if (!i) return '';
+  const own = i.from===u, col = i.kind==='alarm' ? 'var(--alarm)' : 'var(--brand)';
+  return `<div class="ring" role="alertdialog" aria-modal="true" aria-label="${esc(txt(u,i.title))}"><div class="ring-mid">
+    <div class="pulse" style="color:${col}"><span>${i.kind==='alarm'?ICON.alarm:ICON.bell}</span></div>
+    <div style="font-size:1.3em;font-weight:700">${time(u,now())}</div>
+    <h4>${esc(txt(u,i.title))}</h4>${i.note?`<div class="muted" style="font-size:1.1em">${esc(txt(u,i.note))}</div>`:''}
+    <div class="row" style="justify-content:center">${own?'':avatar(u,i.from)}<b style="font-size:1.1em">${own?tx(u,'ringOwn'):tx(u,'ringFrom',{n:esc(nm(u,i.from))})}</b></div>
+    <button class="btn sec" data-a="speak">${ICON.speak}${tx(u,'read')}</button>
+    ${own?'':`<div class="muted" style="font-weight:600;margin-top:4px">${tx(u,'replyQ')}</div><div class="row" style="flex-wrap:wrap;justify-content:center;gap:8px">
+      ${['r1','r2','r3'].map(k=>`<button class="idea reply" aria-pressed="${ui[u].ringReply===k}" data-a="reply" data-v="${k}">${tx(u,k)}</button>`).join('')}</div>`}
+  </div><div class="stack"><button class="donebig" data-a="ringDone">${ICON.check}${tx(u,'done')}</button>
+    <button class="btn sec block" data-a="snooze">${ICON.clock}${tx(u,'snooze')}</button></div></div>`;
+}
+
+function render(u){
+  const el = document.getElementById('phone-'+u), me = users[u], st = ui[u];
+  const focusId = document.activeElement?.id;
+  el.dir = me.lang==='ar' ? 'rtl' : 'ltr'; el.lang = me.lang; el.dataset.text = me.text;
+  const badge = items.filter(i=>i.to===u && i.from!==u && i.status==='pending').length;
+  const nav = [['home',ICON.home],['people',ICON.people],['settings',ICON.gear]].map(([t,ic])=>
+    `<button data-a="tab" data-v="${t}" ${st.tab===t?'aria-current="page"':''}>${ic}<span>${tx(u,t)}</span>${t==='home'&&badge?`<span class="dot" aria-label="${badge}">${badge}</span>`:''}</button>`).join('');
+  el.innerHTML = `<div class="status"><span>${new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}</span><span>●●● ▮</span></div>
+    <div class="scroll">${st.tab==='home'?homeView(u):st.tab==='people'?peopleView(u):settingsView(u)}</div>
+    <div class="newbtn"><button class="btn primary" data-a="new">${ICON.plus}${tx(u,'new')}</button></div>
+    <nav class="nav" aria-label="Menu">${nav}</nav>
+    ${st.sheet?sheetView(u):''}${st.ring?ringView(u):''}
+    ${st.toast?`<div class="toast" role="status"><span style="flex:1">${st.toast.text}</span>${st.toast.undo?`<button data-a="undo">${tx(u,'undo')}</button>`:''}</div>`:''}`;
+  if (focusId) { const f = document.getElementById(focusId); if (f && el.contains(f)) { f.focus(); if (f.setSelectionRange) f.setSelectionRange(f.value.length,f.value.length); } }
+}
+const renderAll = () => { render('h'); render('a'); };
+
+function toast(u,text,undo){ ui[u].toast = {text,undo}; clearTimeout(ui[u].tt); ui[u].tt = setTimeout(()=>{ ui[u].toast=null; render(u); }, 6000); }
+
+/* ── sound ── */
+let ctx = null, beepTimer = null;
+function unlock(){ try { ctx ??= new (window.AudioContext||window.webkitAudioContext)(); if (ctx.state==='suspended') ctx.resume(); } catch {} }
+function beep(t,f,len,v){ const o=ctx.createOscillator(), g=ctx.createGain(); o.frequency.value=f; g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(v,t+.02); g.gain.exponentialRampToValueAtTime(.001,t+len); o.connect(g).connect(ctx.destination); o.start(t); o.stop(t+len+.05); }
+function playOnce(kind){ if(!soundOn||!ctx) return; const t=ctx.currentTime; if(kind==='alarm'){[0,.25,.5].forEach(d=>beep(t+d,880,.2,.35));} else {beep(t,660,.6,.25);beep(t+.35,880,.8,.2);} }
+function syncSound(){ const ringing = ['h','a'].map(u=>items.find(i=>i.id===ui[u].ring)).filter(Boolean);
+  clearInterval(beepTimer); beepTimer=null;
+  if (ringing.some(i=>i.kind==='alarm')) { playOnce('alarm'); beepTimer=setInterval(()=>playOnce('alarm'),1500); }
+  else if (ringing.length) playOnce('reminder'); }
+
+/* ── actions ── */
+function startRing(u,i){ ui[u].ring = i.id; ui[u].ringReply = null; ui[u].sheet = null; handled.add(i.id+':'+i.due); render(u); syncSound(); }
+function markDone(i, reply){
+  i.reply = reply ? {en:S.en[reply],ar:S.ar[reply]} : null; i.doneAt = now();
+  if (i.repeat!=='none') { const step = i.repeat==='daily'?864e5:7*864e5; let d=i.due; while(d<=now()) d+=step; i.due=d; i.status='scheduled'; }
+  else i.status='done';
+}
+function act(u, a, el, ev){
+  const st = ui[u], id = el.dataset.id, v = el.dataset.v, it = items.find(x=>x.id===id);
+  switch(a){
+    case 'tab': st.tab=v; break;
+    case 'new': st.sheet={step:1,to:'',title:'',kind:'reminder',preset:'in1',repeat:'none'}; break;
+    case 'remind': st.sheet={step:2,to:other(u),title:'',kind:'reminder',preset:'in1',repeat:'none'}; break;
+    case 'close': st.sheet=null; break;
+    case 'sheetBg': if (ev && el===ev.target && !st.sheet.title.trim()) st.sheet=null; else return; break;
+    case 'to': st.sheet.to=v; break;
+    case 'idea': st.sheet.title=tx(u,v); break;
+    case 'kind': st.sheet.kind=v; break;
+    case 'preset': st.sheet.preset=v; break;
+    case 'repeat': st.sheet.repeat=v; break;
+    case 'next': st.sheet.step++; break;
+    case 'back': st.sheet.step--; break;
+    case 'submit': {
+      const s=st.sheet, isMe=s.to===u, kind=(isMe||rules[s.to][u].alarms)?s.kind:'reminder';
+      if (!isMe && rules[s.to][u].level==='blocked') { toast(u, L(u)==='ar'?'هذا الشخص لا يستقبل التذكيرات منك.':'This person is not accepting reminders from you.'); st.sheet=null; break; }
+      items.push({id:String(++seq),from:u,to:s.to,kind,title:s.title.trim(),note:null,due:presetTime(s.preset),repeat:s.repeat,
+        status:willAuto(u,s.to,kind)?'scheduled':'pending',reply:null,doneAt:null,created:now()});
+      st.sheet=null; toast(u, isMe?tx(u,'saved'):tx(u,'sentTo',{n:esc(nm(u,s.to))})); renderAll(); return; }
+    case 'allow': it.status='scheduled'; toast(u,tx(u,'saved')); renderAll(); return;
+    case 'always': it.status='scheduled'; rules[u][it.from].level='auto'; toast(u,tx(u,'saved')); renderAll(); return;
+    case 'decline': it.status='declined'; renderAll(); return;
+    case 'cancel': { const prev=it.status; it.status='cancelled'; st.undo={id,prev}; toast(u,tx(u,'cancelled'),true); renderAll(); return; }
+    case 'undo': { const x=items.find(i=>i.id===st.undo?.id); if(x) x.status=st.undo.prev; st.toast=null; renderAll(); return; }
+    case 'doneCard': markDone(it); toast(u,tx(u,'done')+' ✓'); renderAll(); return;
+    case 'reply': st.ringReply = st.ringReply===v?null:v; break;
+    case 'ringDone': { const r=items.find(i=>i.id===st.ring); if(r) markDone(r, st.ringReply); st.ring=null; syncSound(); renderAll(); return; }
+    case 'snooze': { const r=items.find(i=>i.id===st.ring); if(r){ r.status='snoozed'; r.due=now()+10*MIN; } st.ring=null; syncSound(); renderAll(); return; }
+    case 'speak': { const r=items.find(i=>i.id===st.ring); try { const t=new SpeechSynthesisUtterance(txt(u,r.title)+'. '+txt(u,r.note)); t.lang=L(u)==='ar'?'ar-SA':'en-US'; t.rate=.9; speechSynthesis.cancel(); speechSynthesis.speak(t);} catch {} return; }
+    case 'lang': users[u].lang=v; break;
+    case 'text': users[u].text=v; break;
+    case 'simple': users[u].simple=el.checked; break;
+    case 'level': rules[u][other(u)].level=v; toast(u,tx(u,'saved')); break;
+    case 'alarms': rules[u][other(u)].alarms=el.checked; toast(u,tx(u,'saved')); break;
+    case 'test': items.push({id:String(++seq),from:u,to:u,kind:'alarm',title:{en:S.en.test,ar:S.ar.test},note:null,due:now()+5000,repeat:'none',status:'scheduled',reply:null,doneAt:null,created:now()}); toast(u,tx(u,'testArmed')); break;
+    default: return;
+  }
+  render(u);
+}
+
+['h','a'].forEach(u=>{
+  const el = document.getElementById('phone-'+u);
+  el.addEventListener('click', e=>{ unlock(); const t=e.target.closest('[data-a]'); if(!t||t.tagName==='INPUT') return; act(u,t.dataset.a,t,e); });
+  el.addEventListener('change', e=>{ const t=e.target; if(t.dataset.a) act(u,t.dataset.a,t); });
+  el.addEventListener('input', e=>{ const t=e.target; if(t.dataset.in==='title'){ ui[u].sheet.title=t.value; const n=el.querySelector('[data-a="next"]'); if(n) n.disabled=!t.value.trim(); } });
+  el.addEventListener('keydown', e=>{ if(e.key==='Escape' && ui[u].sheet){ ui[u].sheet=null; render(u); } });
+});
+document.querySelectorAll('[data-ringnow]').forEach(b=>b.addEventListener('click',()=>{ unlock(); const u=b.dataset.ringnow;
+  const n = items.filter(i=>i.to===u && live(i)).sort((a,b)=>a.due-b.due)[0];
+  if (n) { n.due = now(); startRing(u,n); } else { toast(u, tx(u,'nothing')); render(u); } }));
+document.getElementById('soundBtn').addEventListener('click',e=>{ soundOn=!soundOn; e.currentTarget.setAttribute('aria-pressed',soundOn); e.currentTarget.textContent=soundOn?'Sound on':'Sound off'; unlock(); syncSound(); });
+
+// clock: ring anything due, refresh times every 30s
+let lastPaint = 0;
+setInterval(()=>{
+  ['h','a'].forEach(u=>{
+    if (ui[u].ring) return;
+    const due = items.find(i=>i.to===u && live(i) && i.due<=now() && !handled.has(i.id+':'+i.due));
+    if (due) startRing(u,due);
+  });
+  if (now()-lastPaint>30000) { lastPaint=now(); ['h','a'].forEach(u=>{ if(!ui[u].sheet) render(u); }); }
+},1000);
+renderAll();
+</script>
+</body>
+</html>
